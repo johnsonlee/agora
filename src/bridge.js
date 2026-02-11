@@ -30,19 +30,26 @@ export class ChatBridge {
 
     await input.click()
     
-    // Clear existing content and insert text with newlines as <br>
-    await this.page.evaluate((el, text) => {
-      el.innerHTML = ''
+    // Clear existing content
+    await this.page.evaluate(el => {
       el.focus()
-      const lines = text.split('\n')
-      lines.forEach((line, i) => {
-        el.innerHTML += line.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        if (i < lines.length - 1) {
-          el.innerHTML += '<br>'
-        }
-      })
-      el.dispatchEvent(new InputEvent('input', { bubbles: true }))
-    }, input, message)
+      // Select all and delete
+      document.execCommand('selectAll', false, null)
+      document.execCommand('delete', false, null)
+    }, input)
+
+    // Type text line by line, using Shift+Enter for newlines
+    const lines = message.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]) {
+        await input.type(lines[i], { delay: 5 })
+      }
+      if (i < lines.length - 1) {
+        await this.page.keyboard.down('Shift')
+        await this.page.keyboard.press('Enter')
+        await this.page.keyboard.up('Shift')
+      }
+    }
 
     // Small delay to seem human
     await this.delay(500)
