@@ -35,22 +35,27 @@ export class ChatBridge {
     // Small delay to seem human
     await this.delay(500)
 
-    // Submit - try multiple selectors
-    const submitSelectors = this.submitSelector.split(', ')
-    let submitBtn = null
-    for (const sel of submitSelectors) {
-      submitBtn = await this.page.$(sel)
-      if (submitBtn) {
-        console.log(`[${this.name}] Found submit button: ${sel}`)
-        break
+    // Submit - either click button or press Enter
+    if (this.useEnterToSubmit) {
+      console.log(`[${this.name}] Pressing Enter to submit`)
+      await this.page.keyboard.press('Enter')
+    } else {
+      const submitSelectors = this.submitSelector.split(', ')
+      let submitBtn = null
+      for (const sel of submitSelectors) {
+        submitBtn = await this.page.$(sel)
+        if (submitBtn) {
+          console.log(`[${this.name}] Found submit button: ${sel}`)
+          break
+        }
       }
-    }
 
-    if (!submitBtn) {
-      throw new Error(`No submit button found for selectors: ${this.submitSelector}`)
-    }
+      if (!submitBtn) {
+        throw new Error(`No submit button found for selectors: ${this.submitSelector}`)
+      }
 
-    await submitBtn.click()
+      await submitBtn.click()
+    }
 
     // Wait for streaming to complete
     await this.waitForResponse()
