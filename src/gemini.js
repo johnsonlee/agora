@@ -40,7 +40,13 @@ export class GeminiBridge extends ChatBridge {
       const elements = await this.page.$$(selector)
       if (elements.length > 0) {
         const lastEl = elements[elements.length - 1]
-        return await this.page.evaluate(el => el.innerText, lastEl)
+        let text = await this.page.evaluate(el => el.innerText, lastEl)
+        
+        // Remove "Gemini said" prefix if present
+        text = text.replace(/^Gemini said\n*/i, '').trim()
+        
+        console.log(`[Gemini] Extracted: "${text.substring(0, 80)}..."`)
+        return text
       }
     }
 
