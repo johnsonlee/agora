@@ -30,11 +30,12 @@ export class ChatBridge {
     }
     if (!input) return
 
+    // Use execCommand to avoid TrustedHTML issues
     await this.page.evaluate((el, content) => {
       el.focus()
-      // Convert newlines to <br> for contenteditable
-      el.innerHTML = content.replace(/\n/g, '<br>')
-      el.dispatchEvent(new InputEvent('input', { bubbles: true }))
+      document.execCommand('selectAll', false, null)
+      document.execCommand('delete', false, null)
+      document.execCommand('insertText', false, content)
     }, input, text)
   }
 
