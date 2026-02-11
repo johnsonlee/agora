@@ -8,13 +8,13 @@ export class ClaudeBridge extends ChatBridge {
     super(page, {
       name: 'Claude',
       inputSelector: 'div[contenteditable="true"].ProseMirror, div[contenteditable="true"]',
-      submitSelector: 'button[aria-label="Send Message"], button[aria-label="Send message"], button[data-testid="send-button"], form button[type="submit"], button.send-button',
+      submitSelector: '',
       responseSelector: '[data-testid="message-content"], .prose',
     })
+    this.useEnterToSubmit = true
   }
 
   async isStillStreaming() {
-    // Claude shows a stop button while streaming
     const stopButton = await this.page.$('[data-testid="stop-button"], button[aria-label="Stop"]')
     return stopButton !== null
   }
