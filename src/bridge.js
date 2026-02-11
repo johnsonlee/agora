@@ -22,21 +22,30 @@ export class ChatBridge {
    * Update input box with text (for receiving streamed content)
    */
   async updateInput(text) {
-    const inputSelectors = this.inputSelector.split(', ')
-    let input = null
-    for (const sel of inputSelectors) {
-      input = await this.page.$(sel)
-      if (input) break
-    }
-    if (!input) return
+    try {
+      const inputSelectors = this.inputSelector.split(', ')
+      let input = null
+      for (const sel of inputSelectors) {
+        input = await this.page.$(sel)
+        if (input) break
+      }
+      if (!input) return
 
-    // Use execCommand to avoid TrustedHTML issues
-    await this.page.evaluate((el, content) => {
-      el.focus()
-      document.execCommand('selectAll', false, null)
-      document.execCommand('delete', false, null)
-      document.execCommand('insertText', false, content)
-    }, input, text)
+      await input.click()
+      
+      // Clear existing content
+      await this.page.keyboard.down('Control')
+      await this.page.keyboard.press('KeyA')
+      await this.page.keyboard.up('Control')
+      await this.page.keyboard.press('Backspace')
+      
+      // Type new content (fast, just for display)
+      await input.type(text.substring(0, 500), { delay: 1 })  // Limit length for performance
+      
+    } catch (e) {
+      // Silently fail - streaming sync is optional
+      console.log(`[${this.name}] updateInput failed: ${e.message}`)
+    }
   }
 
   /**
