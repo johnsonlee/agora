@@ -17,20 +17,40 @@ export class ChatBridge {
     console.log(`[${this.name}] Sending message...`)
 
     // Clear and type message
-    await this.page.waitForSelector(this.inputSelector, { visible: true })
-    await this.page.click(this.inputSelector)
-    await this.page.evaluate((selector) => {
-      const el = document.querySelector(selector)
-      if (el) el.textContent = ''
-    }, this.inputSelector)
-    await this.page.type(this.inputSelector, message, { delay: 10 })
+    const inputSelectors = this.inputSelector.split(', ')
+    let input = null
+    for (const sel of inputSelectors) {
+      input = await this.page.$(sel)
+      if (input) break
+    }
+    
+    if (!input) {
+      throw new Error(`No input element found for selectors: ${this.inputSelector}`)
+    }
+
+    await input.click()
+    await this.page.evaluate(el => el.textContent = '', input)
+    await input.type(message, { delay: 10 })
 
     // Small delay to seem human
-    await this.delay(300)
+    await this.delay(500)
 
-    // Submit
-    await this.page.waitForSelector(this.submitSelector, { visible: true })
-    await this.page.click(this.submitSelector)
+    // Submit - try multiple selectors
+    const submitSelectors = this.submitSelector.split(', ')
+    let submitBtn = null
+    for (const sel of submitSelectors) {
+      submitBtn = await this.page.$(sel)
+      if (submitBtn) {
+        console.log(`[${this.name}] Found submit button: ${sel}`)
+        break
+      }
+    }
+
+    if (!submitBtn) {
+      throw new Error(`No submit button found for selectors: ${this.submitSelector}`)
+    }
+
+    await submitBtn.click()
 
     // Wait for streaming to complete
     await this.waitForResponse()
