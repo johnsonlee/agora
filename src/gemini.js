@@ -7,10 +7,11 @@ export class GeminiBridge extends ChatBridge {
   constructor(page) {
     super(page, {
       name: 'Gemini',
-      inputSelector: 'rich-textarea .ql-editor, div[contenteditable="true"]',
-      submitSelector: 'button[aria-label="Send message"], button.send-button',
+      inputSelector: '.ql-editor[contenteditable="true"], rich-textarea .ql-editor',
+      submitSelector: null,  // Use Enter key
       responseSelector: '.response-content, .model-response-text, message-content',
     })
+    this.useEnterToSubmit = true
   }
 
   async isStillStreaming() {
