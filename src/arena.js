@@ -38,13 +38,12 @@ export class Arena {
       console.log('─'.repeat(40))
 
       // A speaks (streams to B's input)
-      const messageForA = round === 1 ? openingPrompt : null  // First round uses opening, subsequent rounds use streamed content
-      const responseA = await this.bridgeA.send(messageForA || await this.getInputContent(this.bridgeA))
+      const responseA = await this.bridgeA.send(round === 1 ? openingPrompt : null)
       this.log(this.bridgeA.name, responseA)
       console.log(`\n[${this.bridgeA.name}]:\n${responseA.substring(0, 200)}...\n`)
 
       // B responds (streams to A's input)
-      const responseB = await this.bridgeB.send(await this.getInputContent(this.bridgeB))
+      const responseB = await this.bridgeB.send(null)
       this.log(this.bridgeB.name, responseB)
       console.log(`\n[${this.bridgeB.name}]:\n${responseB.substring(0, 200)}...\n`)
     }
@@ -58,20 +57,6 @@ export class Arena {
     }
 
     return this.history
-  }
-
-  /**
-   * Get current content from a bridge's input box
-   */
-  async getInputContent(bridge) {
-    const inputSelectors = bridge.inputSelector.split(', ')
-    for (const sel of inputSelectors) {
-      const input = await bridge.page.$(sel)
-      if (input) {
-        return await bridge.page.evaluate(el => el.innerText, input)
-      }
-    }
-    return ''
   }
 
   log(speaker, content) {

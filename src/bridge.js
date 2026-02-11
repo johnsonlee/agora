@@ -25,38 +25,21 @@ export class ChatBridge {
     try {
       const inputSelectors = this.inputSelector.split(', ')
       let input = null
-      let matchedSelector = null
       for (const sel of inputSelectors) {
         input = await this.page.$(sel)
-        if (input) {
-          matchedSelector = sel
-          break
-        }
+        if (input) break
       }
-      
-      if (!input) {
-        console.log(`[${this.name}] updateInput: no input found for ${this.inputSelector}`)
-        return
-      }
-      
-      console.log(`[${this.name}] updateInput: found input with "${matchedSelector}", syncing ${text.length} chars`)
+      if (!input) return
 
-      await input.click()
-      
-      // Clear existing content - try Meta (Mac) first, then Control
-      await this.page.keyboard.down('Meta')
-      await this.page.keyboard.press('KeyA')
-      await this.page.keyboard.up('Meta')
-      await this.page.keyboard.press('Backspace')
-      
-      // Type new content (fast, just for display)
-      const preview = text.substring(0, 300)  // Limit length for performance
-      await input.type(preview, { delay: 0 })
-      
-      console.log(`[${this.name}] updateInput: done`)
-      
+      // Use execCommand for instant content setting (no char-by-char typing)
+      await this.page.evaluate((el, t) => {
+        el.focus()
+        document.execCommand('selectAll', false, null)
+        document.execCommand('insertText', false, t)
+      }, input, text)
+
     } catch (e) {
-      console.log(`[${this.name}] updateInput failed: ${e.message}`)
+      // Silently fail - streaming sync is optional
     }
   }
 
@@ -66,42 +49,43 @@ export class ChatBridge {
   async send(message) {
     console.log(`[${this.name}] Sending message...`)
 
-    // Clear and type message
     const inputSelectors = this.inputSelector.split(', ')
     let input = null
     for (const sel of inputSelectors) {
       input = await this.page.$(sel)
       if (input) break
     }
-    
+
     if (!input) {
       throw new Error(`No input element found for selectors: ${this.inputSelector}`)
     }
 
     await input.click()
-    
-    // Clear existing content
-    await this.page.evaluate(el => {
-      el.focus()
-      document.execCommand('selectAll', false, null)
-      document.execCommand('delete', false, null)
-    }, input)
 
-    // Type text line by line, using Shift+Enter for newlines
-    const lines = message.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i]) {
-        await input.type(lines[i], { delay: 30 })
+    if (message != null) {
+      // Clear existing content
+      await this.page.evaluate(el => {
+        el.focus()
+        document.execCommand('selectAll', false, null)
+        document.execCommand('delete', false, null)
+      }, input)
+
+      // Type text line by line, using Shift+Enter for newlines
+      const lines = message.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i]) {
+          await input.type(lines[i], { delay: 30 })
+        }
+        if (i < lines.length - 1) {
+          await this.delay(100)
+          await this.page.keyboard.down('Shift')
+          await this.page.keyboard.press('Enter')
+          await this.page.keyboard.up('Shift')
+        }
       }
-      if (i < lines.length - 1) {
-        await this.delay(100)
-        await this.page.keyboard.down('Shift')
-        await this.page.keyboard.press('Enter')
-        await this.page.keyboard.up('Shift')
-      }
+
+      await this.delay(500)
     }
-
-    await this.delay(500)
 
     // Record response count before submitting
     this._responseCountBeforeSend = await this.getResponseCount()
