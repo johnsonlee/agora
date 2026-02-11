@@ -8,7 +8,6 @@ export class ChatBridge {
     this.inputSelector = config.inputSelector
     this.submitSelector = config.submitSelector
     this.responseSelector = config.responseSelector
-    this.streamingIndicator = config.streamingIndicator
   }
 
   /**
@@ -18,15 +17,20 @@ export class ChatBridge {
     console.log(`[${this.name}] Sending message...`)
 
     // Clear and type message
-    const input = this.page.locator(this.inputSelector)
-    await input.click()
-    await input.fill(message)
+    await this.page.waitForSelector(this.inputSelector, { visible: true })
+    await this.page.click(this.inputSelector)
+    await this.page.evaluate((selector) => {
+      const el = document.querySelector(selector)
+      if (el) el.textContent = ''
+    }, this.inputSelector)
+    await this.page.type(this.inputSelector, message, { delay: 10 })
 
     // Small delay to seem human
-    await this.page.waitForTimeout(300)
+    await this.delay(300)
 
     // Submit
-    await this.page.locator(this.submitSelector).click()
+    await this.page.waitForSelector(this.submitSelector, { visible: true })
+    await this.page.click(this.submitSelector)
 
     // Wait for streaming to complete
     await this.waitForResponse()
@@ -43,7 +47,7 @@ export class ChatBridge {
    */
   async waitForResponse() {
     // Wait for response to start
-    await this.page.waitForTimeout(1000)
+    await this.delay(2000)
 
     // Wait for streaming to finish (poll-based)
     const maxWait = 120000 // 2 minutes max
@@ -54,10 +58,10 @@ export class ChatBridge {
       const isStreaming = await this.isStillStreaming()
       if (!isStreaming) {
         // Extra buffer to ensure completion
-        await this.page.waitForTimeout(500)
+        await this.delay(500)
         return
       }
-      await this.page.waitForTimeout(pollInterval)
+      await this.delay(pollInterval)
       elapsed += pollInterval
     }
 
@@ -68,10 +72,6 @@ export class ChatBridge {
    * Check if AI is still generating (override in subclass)
    */
   async isStillStreaming() {
-    if (this.streamingIndicator) {
-      const indicator = this.page.locator(this.streamingIndicator)
-      return (await indicator.count()) > 0
-    }
     return false
   }
 
@@ -79,10 +79,14 @@ export class ChatBridge {
    * Extract the latest response text (override in subclass)
    */
   async extractResponse() {
-    const responses = this.page.locator(this.responseSelector)
-    const count = await responses.count()
-    if (count === 0) return ''
+    const elements = await this.page.$$(this.responseSelector)
+    if (elements.length === 0) return ''
 
-    return await responses.nth(count - 1).innerText()
+    const lastEl = elements[elements.length - 1]
+    return await this.page.evaluate(el => el.innerText, lastEl)
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }
