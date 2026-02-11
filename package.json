@@ -1,0 +1,17 @@
+{
+  "name": "agora",
+  "version": "0.1.0",
+  "description": "AI vs AI debate arena - watch Claude and Gemini have a conversation",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "setup": "npx playwright install chromium"
+  },
+  "keywords": ["ai", "debate", "claude", "gemini", "playwright"],
+  "author": "Johnson Lee",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}
