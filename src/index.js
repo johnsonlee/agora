@@ -3,6 +3,53 @@ import { ClaudeBridge } from './claude.js'
 import { GeminiBridge } from './gemini.js'
 import { Arena } from './arena.js'
 
+/**
+ * Inject scripts to avoid bot detection
+ */
+async function injectAntiDetection(page) {
+  await page.addInitScript(() => {
+    // Remove webdriver property
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined
+    })
+
+    // Mock plugins
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [
+        { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+        { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+        { name: 'Native Client', filename: 'internal-nacl-plugin' }
+      ]
+    })
+
+    // Mock languages
+    Object.defineProperty(navigator, 'languages', {
+      get: () => ['en-US', 'en', 'ko']
+    })
+
+    // Mock permissions
+    const originalQuery = window.navigator.permissions.query
+    window.navigator.permissions.query = (parameters) => (
+      parameters.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters)
+    )
+
+    // Mock chrome runtime
+    window.chrome = {
+      runtime: {},
+      loadTimes: function() {},
+      csi: function() {},
+      app: {}
+    }
+
+    // Remove automation-related properties
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol
+  })
+}
+
 // Configuration
 const CONFIG = {
   topic: process.argv[2] || 'AI 会在未来 5 年内取代大部分软件工程师的工作',
@@ -43,6 +90,10 @@ async function main() {
   // Get pages
   const claudePage = claudeBrowser.pages()[0] || await claudeBrowser.newPage()
   const geminiPage = geminiBrowser.pages()[0] || await geminiBrowser.newPage()
+
+  // Inject anti-detection scripts
+  await injectAntiDetection(claudePage)
+  await injectAntiDetection(geminiPage)
 
   // Navigate to chat interfaces
   console.log('Opening Claude...')
