@@ -6,12 +6,14 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "setup": "npx playwright install chromium"
+    "setup": "echo 'No setup needed'"
   },
-  "keywords": ["ai", "debate", "claude", "gemini", "playwright"],
+  "keywords": ["ai", "debate", "claude", "gemini", "puppeteer"],
   "author": "Johnson Lee",
   "license": "MIT",
   "dependencies": {
-    "playwright": "^1.40.0"
+    "puppeteer": "^22.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
