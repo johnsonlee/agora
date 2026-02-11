@@ -10,21 +10,34 @@ const CONFIG = {
   slowMo: 50,  // ms between actions
 }
 
+// Realistic browser settings to avoid bot detection
+const BROWSER_OPTIONS = {
+  headless: false,
+  viewport: { width: 900, height: 1000 },
+  slowMo: CONFIG.slowMo,
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  locale: 'en-US',
+  timezoneId: 'Asia/Seoul',
+  args: [
+    '--disable-blink-features=AutomationControlled',
+    '--disable-features=IsolateOrigins,site-per-process',
+    '--no-first-run',
+    '--no-default-browser-check',
+  ],
+  ignoreDefaultArgs: ['--enable-automation'],
+}
+
 async function main() {
   console.log('Starting Agora...')
   console.log('Launching browsers...\n')
 
   // Launch two separate browser windows
   const claudeBrowser = await chromium.launchPersistentContext('./profiles/claude', {
-    headless: false,
-    viewport: { width: 900, height: 1000 },
-    slowMo: CONFIG.slowMo
+    ...BROWSER_OPTIONS,
   })
 
   const geminiBrowser = await chromium.launchPersistentContext('./profiles/gemini', {
-    headless: false,
-    viewport: { width: 900, height: 1000 },
-    slowMo: CONFIG.slowMo
+    ...BROWSER_OPTIONS,
   })
 
   // Get pages
