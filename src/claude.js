@@ -9,26 +9,26 @@ export class ClaudeBridge extends ChatBridge {
       name: 'Claude',
       inputSelector: '[data-testid="chat-input"], div[contenteditable="true"].ProseMirror',
       submitSelector: '',
-      responseSelector: '[data-testid="message-content"], .prose',
+      responseSelector: '.font-claude-response .standard-markdown',
     })
     this.useEnterToSubmit = true
   }
 
   async isStillStreaming() {
+    // Check for data-is-streaming attribute
+    const streaming = await this.page.$('[data-is-streaming="true"]')
+    if (streaming) return true
+    
+    // Also check for stop button
     const stopButton = await this.page.$('[data-testid="stop-button"], button[aria-label="Stop"]')
     return stopButton !== null
   }
 
   async extractResponse() {
-    const selectors = ['[data-testid="message-content"]', '.prose', '.message-content']
-    
-    for (const selector of selectors) {
-      const elements = await this.page.$$(selector)
-      if (elements.length > 0) {
-        const lastEl = elements[elements.length - 1]
-        return await this.page.evaluate(el => el.innerText, lastEl)
-      }
-    }
-    return ''
+    const elements = await this.page.$$('.font-claude-response .standard-markdown')
+    if (elements.length === 0) return ''
+
+    const lastEl = elements[elements.length - 1]
+    return await this.page.evaluate(el => el.innerText, lastEl)
   }
 }
