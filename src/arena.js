@@ -10,6 +10,10 @@ export class Arena {
     this.maxRounds = options.maxRounds || 5
     this.logFile = options.logFile || null
     this.history = []
+    
+    // Set up bidirectional streaming
+    this.bridgeA.setTargetBridge(this.bridgeB)
+    this.bridgeB.setTargetBridge(this.bridgeA)
   }
 
   /**
@@ -22,6 +26,7 @@ export class Arena {
     console.log(`Topic: ${topic}`)
     console.log(`Participants: ${this.bridgeA.name} vs ${this.bridgeB.name}`)
     console.log(`Rounds: ${this.maxRounds}`)
+    console.log('Streaming: enabled (real-time sync)')
     console.log('='.repeat(60) + '\n')
 
     // Opening message
@@ -32,56 +37,46 @@ export class Arena {
 2. 给出 2-3 个关键论据
 3. 控制在 300 字以内`
 
-    let lastMessage = openingPrompt
-
     for (let round = 1; round <= this.maxRounds; round++) {
       console.log(`\n${'─'.repeat(40)}`)
       console.log(`Round ${round}/${this.maxRounds}`)
       console.log('─'.repeat(40))
 
-      // A speaks
-      const responseA = await this.bridgeA.send(lastMessage)
+      // A speaks (streams to B's input)
+      const messageForA = round === 1 ? openingPrompt : null  // First round uses opening, subsequent rounds use streamed content
+      const responseA = await this.bridgeA.send(messageForA || await this.getInputContent(this.bridgeA))
       this.log(this.bridgeA.name, responseA)
-      console.log(`\n[${this.bridgeA.name}]:\n${responseA}\n`)
+      console.log(`\n[${this.bridgeA.name}]:\n${responseA.substring(0, 200)}...\n`)
 
-      // Prepare message for B
-      const promptForB = `对方（${this.bridgeA.name}）说：
-
-"${responseA}"
-
-请回应，要求：
-1. 指出对方论证的漏洞或不足
-2. 给出你的反驳或补充观点
-3. 控制在 300 字以内
-4. 不要轻易同意对方`
-
-      // B responds
-      const responseB = await this.bridgeB.send(promptForB)
+      // B responds (streams to A's input)
+      const responseB = await this.bridgeB.send(await this.getInputContent(this.bridgeB))
       this.log(this.bridgeB.name, responseB)
-      console.log(`\n[${this.bridgeB.name}]:\n${responseB}\n`)
-
-      // Prepare message for A (next round)
-      lastMessage = `对方（${this.bridgeB.name}）说：
-
-"${responseB}"
-
-请回应，要求：
-1. 指出对方论证的漏洞或不足
-2. 给出你的反驳或补充观点
-3. 控制在 300 字以内
-4. 不要轻易同意对方`
+      console.log(`\n[${this.bridgeB.name}]:\n${responseB.substring(0, 200)}...\n`)
     }
 
     console.log('\n' + '='.repeat(60))
     console.log('Debate concluded')
     console.log('='.repeat(60))
 
-    // Save log
     if (this.logFile) {
       this.saveLog()
     }
 
     return this.history
+  }
+
+  /**
+   * Get current content from a bridge's input box
+   */
+  async getInputContent(bridge) {
+    const inputSelectors = bridge.inputSelector.split(', ')
+    for (const sel of inputSelectors) {
+      const input = await bridge.page.$(sel)
+      if (input) {
+        return await bridge.page.evaluate(el => el.innerText, input)
+      }
+    }
+    return ''
   }
 
   log(speaker, content) {
