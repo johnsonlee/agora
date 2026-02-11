@@ -7,7 +7,7 @@ export class ClaudeBridge extends ChatBridge {
   constructor(page) {
     super(page, {
       name: 'Claude',
-      inputSelector: 'div[contenteditable="true"].ProseMirror, div[contenteditable="true"]',
+      inputSelector: '[data-testid="chat-input"], div[contenteditable="true"].ProseMirror',
       submitSelector: '',
       responseSelector: '[data-testid="message-content"], .prose',
     })
