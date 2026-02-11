@@ -42,17 +42,19 @@ export class ChatBridge {
     const lines = message.split('\n')
     for (let i = 0; i < lines.length; i++) {
       if (lines[i]) {
-        await input.type(lines[i], { delay: 5 })
+        // Human-like typing speed: 50-100ms per character
+        await input.type(lines[i], { delay: 75 })
       }
       if (i < lines.length - 1) {
+        await this.delay(200)
         await this.page.keyboard.down('Shift')
         await this.page.keyboard.press('Enter')
         await this.page.keyboard.up('Shift')
       }
     }
 
-    // Small delay to seem human
-    await this.delay(500)
+    // Pause before sending, like a human reviewing
+    await this.delay(1000)
 
     // Submit - either click button or press Enter
     if (this.useEnterToSubmit) {
