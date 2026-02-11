@@ -75,7 +75,11 @@ const BROWSER_OPTIONS = {
     '--disable-infobars',
     '--window-size=900,1000',
   ],
-  ignoreDefaultArgs: ['--enable-automation'],
+  ignoreDefaultArgs: [
+    '--enable-automation',
+    '--no-sandbox',
+    '--disable-extensions',
+  ],
 }
 
 async function main() {
