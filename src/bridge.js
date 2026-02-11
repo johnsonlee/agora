@@ -29,8 +29,20 @@ export class ChatBridge {
     }
 
     await input.click()
-    await this.page.evaluate(el => el.textContent = '', input)
-    await input.type(message, { delay: 10 })
+    
+    // Clear existing content and insert text with newlines as <br>
+    await this.page.evaluate((el, text) => {
+      el.innerHTML = ''
+      el.focus()
+      const lines = text.split('\n')
+      lines.forEach((line, i) => {
+        el.innerHTML += line.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        if (i < lines.length - 1) {
+          el.innerHTML += '<br>'
+        }
+      })
+      el.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    }, input, message)
 
     // Small delay to seem human
     await this.delay(500)
