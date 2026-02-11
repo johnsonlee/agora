@@ -25,25 +25,37 @@ export class ChatBridge {
     try {
       const inputSelectors = this.inputSelector.split(', ')
       let input = null
+      let matchedSelector = null
       for (const sel of inputSelectors) {
         input = await this.page.$(sel)
-        if (input) break
+        if (input) {
+          matchedSelector = sel
+          break
+        }
       }
-      if (!input) return
+      
+      if (!input) {
+        console.log(`[${this.name}] updateInput: no input found for ${this.inputSelector}`)
+        return
+      }
+      
+      console.log(`[${this.name}] updateInput: found input with "${matchedSelector}", syncing ${text.length} chars`)
 
       await input.click()
       
-      // Clear existing content
-      await this.page.keyboard.down('Control')
+      // Clear existing content - try Meta (Mac) first, then Control
+      await this.page.keyboard.down('Meta')
       await this.page.keyboard.press('KeyA')
-      await this.page.keyboard.up('Control')
+      await this.page.keyboard.up('Meta')
       await this.page.keyboard.press('Backspace')
       
       // Type new content (fast, just for display)
-      await input.type(text.substring(0, 500), { delay: 1 })  // Limit length for performance
+      const preview = text.substring(0, 300)  // Limit length for performance
+      await input.type(preview, { delay: 0 })
+      
+      console.log(`[${this.name}] updateInput: done`)
       
     } catch (e) {
-      // Silently fail - streaming sync is optional
       console.log(`[${this.name}] updateInput failed: ${e.message}`)
     }
   }
