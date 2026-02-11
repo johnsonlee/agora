@@ -85,6 +85,11 @@ export class ChatBridge {
     const response = await this.extractResponse()
     console.log(`[${this.name}] Response received (${response.length} chars)`)
 
+    // Pause 3-5 seconds like a human reading the response
+    const thinkingTime = 3000 + Math.random() * 2000
+    console.log(`[${this.name}] Pausing ${Math.round(thinkingTime/1000)}s before next turn...`)
+    await this.delay(thinkingTime)
+
     return response
   }
 
