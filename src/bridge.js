@@ -103,6 +103,9 @@ export class ChatBridge {
 
     await this.delay(500)
 
+    // Record response count before submitting
+    this._responseCountBeforeSend = await this.getResponseCount()
+
     // Submit
     if (this.useEnterToSubmit) {
       await this.page.keyboard.press('Enter')
@@ -125,35 +128,56 @@ export class ChatBridge {
    * Wait for response while streaming content to target bridge
    */
   async waitAndStreamResponse() {
-    await this.delay(1500)  // Wait for response to start
-    
     const maxWait = 120000
     const pollInterval = 300
     let elapsed = 0
-    let lastContent = ''
+    const beforeCount = this._responseCountBeforeSend || 0
 
+    // Phase 1: Wait for new response to appear or streaming to start
+    console.log(`[${this.name}] Waiting for new response (current count: ${beforeCount})...`)
+    while (elapsed < maxWait) {
+      const currentCount = await this.getResponseCount()
+      const isStreaming = await this.isStillStreaming()
+
+      if (currentCount > beforeCount || isStreaming) {
+        console.log(`[${this.name}] New response detected (count: ${currentCount}, streaming: ${isStreaming})`)
+        break
+      }
+
+      await this.delay(pollInterval)
+      elapsed += pollInterval
+    }
+
+    if (elapsed >= maxWait) {
+      console.warn(`[${this.name}] Timeout waiting for response to appear`)
+      return ''
+    }
+
+    // Phase 2: Poll until streaming finishes, syncing content along the way
+    let lastContent = ''
     while (elapsed < maxWait) {
       const currentContent = await this.extractResponse()
       const isStreaming = await this.isStillStreaming()
-      
+
       // Stream new content to target
       if (currentContent !== lastContent && this.targetBridge) {
-        const prefix = `对方（${this.name}）正在说：\n\n"`
-        const suffix = `"\n\n（等待对方说完...）`
-        await this.targetBridge.updateInput(prefix + currentContent + suffix)
+        await this.targetBridge.updateInput(currentContent)
         lastContent = currentContent
       }
-      
+
       if (!isStreaming && currentContent.length > 0) {
+        // Double-check: wait a bit and verify streaming really stopped
         await this.delay(500)
-        // Clear target input and prepare final message
-        if (this.targetBridge) {
-          const finalPrompt = `对方（${this.name}）说：\n\n"${currentContent}"\n\n请回应，要求：\n1. 指出对方论证的漏洞或不足\n2. 给出你的反驳或补充观点\n3. 控制在 300 字以内\n4. 不要轻易同意对方`
-          await this.targetBridge.updateInput(finalPrompt)
+        const stillStreaming = await this.isStillStreaming()
+        if (!stillStreaming) {
+          const finalContent = await this.extractResponse()
+          if (this.targetBridge) {
+            await this.targetBridge.updateInput(finalContent)
+          }
+          return finalContent
         }
-        return currentContent
       }
-      
+
       await this.delay(pollInterval)
       elapsed += pollInterval
     }
@@ -178,6 +202,14 @@ export class ChatBridge {
 
     const lastEl = elements[elements.length - 1]
     return await this.page.evaluate(el => el.innerText, lastEl)
+  }
+
+  /**
+   * Get the current number of response elements (override in subclass)
+   */
+  async getResponseCount() {
+    const elements = await this.page.$$(this.responseSelector)
+    return elements.length
   }
 
   delay(ms) {

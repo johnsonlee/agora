@@ -27,6 +27,20 @@ export class GeminiBridge extends ChatBridge {
     return response !== response2
   }
 
+  async getResponseCount() {
+    const selectors = [
+      'message-content.model-response-text',
+      '.response-content',
+      '.model-response-text',
+      '[data-message-author="model"]'
+    ]
+    for (const selector of selectors) {
+      const elements = await this.page.$$(selector)
+      if (elements.length > 0) return elements.length
+    }
+    return 0
+  }
+
   async extractResponse() {
     // Try multiple possible selectors for Gemini
     const selectors = [

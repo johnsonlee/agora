@@ -60,11 +60,13 @@ export class ClaudeBridge extends ChatBridge {
     console.warn(`[${this.name}] Response timeout`)
   }
 
+  async getResponseCount() {
+    return (await this.page.$$('.font-claude-response')).length
+  }
+
   async extractResponse() {
-    await this.delay(300)
-    
     const elements = await this.page.$$('.font-claude-response')
-    console.log(`[Claude] Found ${elements.length} responses (was ${this.lastResponseCount})`)
+    console.log(`[Claude] Found ${elements.length} responses`)
     
     if (elements.length === 0) {
       return ''

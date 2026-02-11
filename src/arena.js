@@ -30,12 +30,7 @@ export class Arena {
     console.log('='.repeat(60) + '\n')
 
     // Opening message
-    const openingPrompt = `我们来进行一场辩论。话题是：「${topic}」
-
-请先陈述你的核心观点，要求：
-1. 立场鲜明
-2. 给出 2-3 个关键论据
-3. 控制在 300 字以内`
+    const openingPrompt = topic
 
     for (let round = 1; round <= this.maxRounds; round++) {
       console.log(`\n${'─'.repeat(40)}`)
