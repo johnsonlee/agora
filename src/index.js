@@ -65,11 +65,15 @@ const BROWSER_OPTIONS = {
   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
   locale: 'en-US',
   timezoneId: 'Asia/Seoul',
+  channel: 'chrome',  // Use system Chrome instead of Playwright Chromium
   args: [
     '--disable-blink-features=AutomationControlled',
     '--disable-features=IsolateOrigins,site-per-process',
     '--no-first-run',
     '--no-default-browser-check',
+    '--disable-dev-shm-usage',
+    '--disable-infobars',
+    '--window-size=900,1000',
   ],
   ignoreDefaultArgs: ['--enable-automation'],
 }
