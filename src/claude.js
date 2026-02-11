@@ -17,18 +17,43 @@ export class ClaudeBridge extends ChatBridge {
   async isStillStreaming() {
     // Check for data-is-streaming attribute
     const streaming = await this.page.$('[data-is-streaming="true"]')
-    if (streaming) return true
+    if (streaming) {
+      console.log('[Claude] Still streaming (data-is-streaming=true)')
+      return true
+    }
     
-    // Also check for stop button
-    const stopButton = await this.page.$('[data-testid="stop-button"], button[aria-label="Stop"]')
-    return stopButton !== null
+    // Check for stop button
+    const stopButton = await this.page.$('button[aria-label="Stop generating"]')
+    if (stopButton) {
+      console.log('[Claude] Still streaming (stop button visible)')
+      return true
+    }
+
+    return false
   }
 
   async extractResponse() {
-    const elements = await this.page.$$('.font-claude-response .standard-markdown')
-    if (elements.length === 0) return ''
+    // Wait a bit for DOM to settle
+    await this.delay(500)
+    
+    // Get all message groups - assistant messages have font-claude-response
+    const elements = await this.page.$$('.font-claude-response')
+    console.log(`[Claude] Found ${elements.length} assistant response containers`)
+    
+    if (elements.length === 0) {
+      return ''
+    }
 
+    // Get the last assistant message
     const lastEl = elements[elements.length - 1]
-    return await this.page.evaluate(el => el.innerText, lastEl)
+    
+    // Extract text from the markdown content inside
+    const text = await this.page.evaluate(el => {
+      const markdown = el.querySelector('.standard-markdown, .progressive-markdown')
+      return markdown ? markdown.innerText : el.innerText
+    }, lastEl)
+    
+    console.log(`[Claude] Extracted ${text.length} chars: "${text.substring(0, 50)}..."`)
+    return text
   }
 }
