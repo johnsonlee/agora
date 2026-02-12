@@ -5,8 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "setup": "echo 'No setup needed'"
+    "start": "node src/index.js"
   },
   "keywords": ["ai", "debate", "claude", "gemini", "puppeteer"],
   "author": "Johnson Lee",

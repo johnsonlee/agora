@@ -22,6 +22,8 @@ export class ChatBridge {
    * Update input box with text (for receiving streamed content)
    */
   async updateInput(text) {
+    if (this._updating) return
+    this._updating = true
     try {
       const inputSelectors = this.inputSelector.split(', ')
       let input = null
@@ -31,15 +33,17 @@ export class ChatBridge {
       }
       if (!input) return
 
-      // Use execCommand for instant content setting (no char-by-char typing)
-      await this.page.evaluate((el, t) => {
+      // Select all then replace via execCommand (fast visual preview)
+      await this.page.evaluate((el, newText) => {
         el.focus()
         document.execCommand('selectAll', false, null)
-        document.execCommand('insertText', false, t)
+        document.execCommand('insertText', false, newText)
       }, input, text)
-
+      this._lastSyncedText = text
     } catch (e) {
-      // Silently fail - streaming sync is optional
+      console.log(`[${this.name}] updateInput failed: ${e.message}`)
+    } finally {
+      this._updating = false
     }
   }
 
@@ -62,30 +66,33 @@ export class ChatBridge {
 
     await input.click()
 
-    if (message != null) {
-      // Clear existing content
-      await this.page.evaluate(el => {
-        el.focus()
-        document.execCommand('selectAll', false, null)
-        document.execCommand('delete', false, null)
-      }, input)
-
-      // Type text line by line, using Shift+Enter for newlines
-      const lines = message.split('\n')
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i]) {
-          await input.type(lines[i], { delay: 30 })
-        }
-        if (i < lines.length - 1) {
-          await this.delay(100)
-          await this.page.keyboard.down('Shift')
-          await this.page.keyboard.press('Enter')
-          await this.page.keyboard.up('Shift')
-        }
-      }
-
-      await this.delay(500)
+    // Get text to send: either provided message or content from streaming sync
+    const text = message != null ? message : this._lastSyncedText
+    if (!text || !text.trim()) {
+      throw new Error('No content to send')
     }
+
+    // Clear existing content
+    await this.page.evaluate(el => {
+      el.focus()
+      document.execCommand('selectAll', false, null)
+      document.execCommand('delete', false, null)
+    }, input)
+
+    // Type text line by line (registers with editor for submission)
+    const lines = text.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]) {
+        await input.type(lines[i], { delay: 0 })
+      }
+      if (i < lines.length - 1) {
+        await this.page.keyboard.down('Shift')
+        await this.page.keyboard.press('Enter')
+        await this.page.keyboard.up('Shift')
+      }
+    }
+
+    await this.delay(500)
 
     // Record response count before submitting
     this._responseCountBeforeSend = await this.getResponseCount()
@@ -100,10 +107,7 @@ export class ChatBridge {
     
     console.log(`[${this.name}] Response complete (${response.length} chars)`)
 
-    // Pause 3-5 seconds like a human reading the response
-    const thinkingTime = 3000 + Math.random() * 2000
-    console.log(`[${this.name}] Pausing ${Math.round(thinkingTime/1000)}s before next turn...`)
-    await this.delay(thinkingTime)
+    await this.delay(1500)
 
     return response
   }
@@ -145,7 +149,7 @@ export class ChatBridge {
 
       // Stream new content to target
       if (currentContent !== lastContent && this.targetBridge) {
-        await this.targetBridge.updateInput(currentContent)
+        await this.targetBridge.updateInput(`${this.name}:\n\n${currentContent}`)
         lastContent = currentContent
       }
 
@@ -156,7 +160,7 @@ export class ChatBridge {
         if (!stillStreaming) {
           const finalContent = await this.extractResponse()
           if (this.targetBridge) {
-            await this.targetBridge.updateInput(finalContent)
+            await this.targetBridge.updateInput(`${this.name}:\n\n${finalContent}`)
           }
           return finalContent
         }

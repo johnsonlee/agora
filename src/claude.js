@@ -66,21 +66,12 @@ export class ClaudeBridge extends ChatBridge {
 
   async extractResponse() {
     const elements = await this.page.$$('.font-claude-response')
-    console.log(`[Claude] Found ${elements.length} responses`)
-    
-    if (elements.length === 0) {
-      return ''
-    }
+    if (elements.length === 0) return ''
 
-    // Get the newest response (last one)
     const lastEl = elements[elements.length - 1]
-    
-    const text = await this.page.evaluate(el => {
+    return await this.page.evaluate(el => {
       const markdown = el.querySelector('.standard-markdown, .progressive-markdown')
       return markdown ? markdown.innerText : el.innerText
     }, lastEl)
-    
-    console.log(`[Claude] Extracted: "${text.substring(0, 80)}..."`)
-    return text
   }
 }

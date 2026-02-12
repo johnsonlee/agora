@@ -11,7 +11,8 @@ puppeteer.use(StealthPlugin())
 // Configuration
 const CONFIG = {
   topic: process.argv[2] || 'AI 会在未来 5 年内取代大部分软件工程师的工作',
-  rounds: parseInt(process.argv[3]) || 5,
+  leftName: process.argv[3] || 'Claude',
+  rightName: process.argv[4] || 'Gemini',
 }
 
 async function main() {
@@ -63,12 +64,13 @@ async function main() {
 
   // Create bridges
   const claude = new ClaudeBridge(claudePage)
+  claude.name = CONFIG.leftName
   const gemini = new GeminiBridge(geminiPage)
+  gemini.name = CONFIG.rightName
 
   // Create arena
   mkdirSync('./logs', { recursive: true })
   const arena = new Arena(claude, gemini, {
-    maxRounds: CONFIG.rounds,
     logFile: `./logs/debate-${Date.now()}.json`
   })
 

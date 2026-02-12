@@ -7,7 +7,6 @@ export class Arena {
   constructor(bridgeA, bridgeB, options = {}) {
     this.bridgeA = bridgeA
     this.bridgeB = bridgeB
-    this.maxRounds = options.maxRounds || 5
     this.logFile = options.logFile || null
     this.history = []
     
@@ -25,43 +24,68 @@ export class Arena {
     console.log('='.repeat(60))
     console.log(`Topic: ${topic}`)
     console.log(`Participants: ${this.bridgeA.name} vs ${this.bridgeB.name}`)
-    console.log(`Rounds: ${this.maxRounds}`)
     console.log('Streaming: enabled (real-time sync)')
     console.log('='.repeat(60) + '\n')
 
-    // Opening message
-    const openingPrompt = topic
+    const moderatorMsg = `主持人:\n\n${topic}`
 
-    for (let round = 1; round <= this.maxRounds; round++) {
+    console.log(`\n${'─'.repeat(40)}`)
+    console.log('Opening statements')
+    console.log('─'.repeat(40))
+
+    // A opens first (no streaming - B hasn't responded yet)
+    this.bridgeA.setTargetBridge(null)
+    this.bridgeB.setTargetBridge(null)
+
+    const openingA = await this.bridgeA.send(moderatorMsg)
+    this.log(0, this.bridgeA.name, openingA)
+    console.log(`\n[${this.bridgeA.name}]:\n${openingA.substring(0, 200)}...\n`)
+
+    // B opens (stream B's response to A so A can see it in real-time)
+    this.bridgeB.setTargetBridge(this.bridgeA)
+
+    const openingB = await this.bridgeB.send(moderatorMsg)
+    this.log(0, this.bridgeB.name, openingB)
+    console.log(`\n[${this.bridgeB.name}]:\n${openingB.substring(0, 200)}...\n`)
+
+    // Enable bidirectional streaming for debate
+    this.bridgeA.setTargetBridge(this.bridgeB)
+
+    let round = 0
+    while (true) {
+      round++
+
       console.log(`\n${'─'.repeat(40)}`)
-      console.log(`Round ${round}/${this.maxRounds}`)
+      console.log(`Round ${round}`)
       console.log('─'.repeat(40))
 
-      // A speaks (streams to B's input)
-      const responseA = await this.bridgeA.send(round === 1 ? openingPrompt : null)
-      this.log(this.bridgeA.name, responseA)
-      console.log(`\n[${this.bridgeA.name}]:\n${responseA.substring(0, 200)}...\n`)
+      try {
+        // A responds (already has B's opening/response from streaming sync)
+        const responseA = await this.bridgeA.send(null)
+        this.log(round, this.bridgeA.name, responseA)
+        console.log(`\n[${this.bridgeA.name}]:\n${responseA.substring(0, 200)}...\n`)
 
-      // B responds (streams to A's input)
-      const responseB = await this.bridgeB.send(null)
-      this.log(this.bridgeB.name, responseB)
-      console.log(`\n[${this.bridgeB.name}]:\n${responseB.substring(0, 200)}...\n`)
+        // B responds (already has A's response from streaming sync)
+        const responseB = await this.bridgeB.send(null)
+        this.log(round, this.bridgeB.name, responseB)
+        console.log(`\n[${this.bridgeB.name}]:\n${responseB.substring(0, 200)}...\n`)
+      } catch (e) {
+        console.error(`\nRound ${round} error: ${e.message}`)
+        console.log('Retrying...\n')
+        round--
+        continue
+      }
+
+      if (this.logFile) {
+        this.saveLog()
+      }
     }
-
-    console.log('\n' + '='.repeat(60))
-    console.log('Debate concluded')
-    console.log('='.repeat(60))
-
-    if (this.logFile) {
-      this.saveLog()
-    }
-
-    return this.history
   }
 
-  log(speaker, content) {
+  log(round, speaker, content) {
     this.history.push({
       timestamp: new Date().toISOString(),
+      round,
       speaker,
       content
     })
