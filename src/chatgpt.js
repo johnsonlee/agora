@@ -1,10 +1,10 @@
 import { ChatBridge } from './bridge.js'
 
-export class ClaudeBridge extends ChatBridge {
+export class ChatGPTBridge extends ChatBridge {
   constructor(page) {
     super(page, {
-      name: 'Claude',
-      url: 'https://claude.ai/new',
+      name: 'ChatGPT',
+      url: 'https://chatgpt.com',
     })
     this.useEnterToSubmit = true
   }
