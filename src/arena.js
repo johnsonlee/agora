@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { buildModeratorMessage } from './templates.js'
 
 /**
  * Orchestrates a debate between two AI chat bridges
@@ -27,7 +28,7 @@ export class Arena {
     console.log('Streaming: enabled (real-time sync)')
     console.log('='.repeat(60) + '\n')
 
-    const moderatorMsg = `主持人:\n\n${topic}`
+    const moderatorMsg = buildModeratorMessage(this.bridgeA.name, this.bridgeB.name, topic)
 
     console.log(`\n${'─'.repeat(40)}`)
     console.log('Opening statements')
@@ -71,7 +72,10 @@ export class Arena {
         console.log(`\n[${this.bridgeB.name}]:\n${responseB.substring(0, 200)}...\n`)
       } catch (e) {
         console.error(`\nRound ${round} error: ${e.message}`)
-        console.log('Retrying...\n')
+        this.bridgeA.resetDOM()
+        this.bridgeB.resetDOM()
+        console.log('Retrying after 3s...\n')
+        await new Promise(r => setTimeout(r, 3000))
         round--
         continue
       }

@@ -1,7 +1,7 @@
 {
   "name": "agora",
   "version": "0.1.0",
-  "description": "AI vs AI debate arena - watch Claude and Gemini have a conversation",
+  "description": "AI vs AI debate arena - watch Claude, Gemini, and ChatGPT debate each other",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
