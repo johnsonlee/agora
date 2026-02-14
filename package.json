@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/index.js"
   },
-  "keywords": ["ai", "debate", "claude", "gemini", "puppeteer"],
+  "keywords": ["ai", "debate", "claude", "gemini", "chatgpt", "puppeteer"],
   "author": "Johnson Lee",
   "license": "MIT",
   "dependencies": {
